@@ -6,6 +6,10 @@ appengine-serviceaccount-go
 `appengine.AccessToken` method in combination with the [URL shortener
 API][3] to access and display the shortened URLs history.
 
+## Demo
+
+[go-serviceaccount.appspot.com][5]
+
 ## APIs
 - [App Engine Go Runtime][1]
 - [App Engine App Identity API][2]
@@ -19,3 +23,4 @@ API][3] to access and display the shortened URLs history.
 [2]: https://developers.google.com/appengine/docs/go/reference#AccessToken
 [3]: https://developers.google.com/url-shortener/
 [4]: http://golang.org
+[5]: https://go-serviceaccount.appspot.com/
