@@ -1,4 +1,4 @@
 appengine-serviceaccount-go
 ===========================
 
-sample that use service account with urlshortner API
+**WIP** [initial import pull request](https://github.com/GoogleCloudPlatform/appengine-serviceaccount-go/pull/1)
