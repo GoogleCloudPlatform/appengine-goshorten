@@ -69,6 +69,7 @@ type authorizedTransport struct {
 
 // RoundTrip issues an authorized HTTP request and returns its response.
 func (t *authorizedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", "OAuth "+t.token)
-	return t.transport.RoundTrip(req)
+	newReq := *req
+	newReq.Header.Set("Authorization", "OAuth "+t.token)
+	return t.transport.RoundTrip(&newReq)
 }
