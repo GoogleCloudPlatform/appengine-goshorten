@@ -14,10 +14,10 @@
 // limitations under the License.
 //
 
-// package serviceaccount is a demo application for the App Identity
-// API. It shows how to use `appengine.AccessToken` method in
-// combination with the URL shortener API.
-package serviceaccount
+// goshorten is a demo application for App Engine Service Accounts. It
+// shows how to use `appengine.AccessToken` method in combination with
+// the URL shortener API.
+package goshorten
 
 import (
 	"bytes"
@@ -35,7 +35,7 @@ type appengineHandler func(c appengine.Context, w http.ResponseWriter, r *http.R
 func (h appengineHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	if err := h(c, w, r); err != nil {
-		c.Errorf(err.Error())
+		c.Errorf("%v", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -45,51 +45,51 @@ func init() {
 	http.Handle("/shorten", appengineHandler(shorten))
 }
 
-// history maps to the JSON body returned by the URL shortener API.
-type history struct {
+// history maps to the JSON body returned by URL shortener API `history` method.
+type historyResponse struct {
 	Items []struct {
 		Id      string
 		LongUrl string
 	}
-	response
+	Error errorValue
 }
 
-// request maps to the JSON payload of POST requests to the URL shortener API.
-type request struct {
+// request maps to the JSON payload of `shorten` requests to the URL shortener API.
+type shortenRequest struct {
 	LongUrl string `json:"longUrl"`
 }
 
-// response maps to the JSON body of URL shortener API responses.
-type response struct {
-	Error struct {
-		Errors []struct {
-			Reason   string
-			Message  string
-			Location string
-		}
-		Code    int
-		Message string
+// errorValue maps to the JSON body of error value in URL Shortener API responses.
+type errorValue struct {
+	Errors []struct {
+		Reason, Message, Location string
 	}
+	Code    int
+	Message string
+}
+
+// shortenResponse maps to the JSON body of `shorten` requests to the URL shortener API.
+type shortenResponse struct {
+	Error errorValue
 }
 
 var mainTemplate = template.Must(template.New("main").Parse(`<html>
 <body>
-<h1>Go/App Engine Service account demo</h1>
-<form action="/shorten" method="POST">
-<label for="url">Enter URL:</url>
-<input type="text" name="url">
-<input type="submit" value="shorten!">
-</form>
-<h2>URLs recently shortened:</h2>
-<ul>
-{{range .Items}}
-<li>
-<a href="{{.Id}}" title="{{.Id}}">{{.LongUrl}}</a>
-</li>
-{{end}}
-</ul>
-</body>
-</html>`))
+  <h1>Go/App Engine Service account demo</h1>
+  <form action="/shorten" method="POST">
+    <label for="url">Enter URL:</url>
+    <input type="text" name="url">
+    <input type="submit" value="shorten!">
+  </form>
+  <h2>URLs recently shortened:</h2>
+  <ul>
+    {{range .Items}}
+    <li>
+      <a href="{{.Id}}" title="{{.Id}}">{{.LongUrl}}</a>
+    </li>
+    {{end}}
+  </ul>
+</body></html>`))
 
 // handle renders the main page template with a submission form and the history of shortened urls.
 func handle(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
@@ -101,7 +101,7 @@ func handle(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("error getting history: %v", err)
 	}
-	var result history
+	var result historyResponse
 	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return fmt.Errorf("error decoding json body: %v", err)
@@ -122,11 +122,11 @@ func shorten(c appengine.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return fmt.Errorf("error creating authorized client: %v", err)
 	}
-	body, err := json.Marshal(&request{LongUrl: r.FormValue("url")})
+	body, err := json.Marshal(&shortenRequest{LongUrl: r.FormValue("url")})
 	if err != nil {
 		return fmt.Errorf("error encoding JSON body: %v", err)
 	}
-	var result response
+	var result shortenResponse
 	resp, err := client.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("error posting url: %v", err)
