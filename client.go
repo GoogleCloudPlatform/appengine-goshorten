@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package serviceaccount
+package goshorten
 
 import (
 	"net/http"

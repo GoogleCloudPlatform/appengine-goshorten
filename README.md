@@ -1,14 +1,14 @@
 appengine-serviceaccount-go
 ===========================
 
-**serviceaccount** is an [App Engine][0] sample application written in
+**goshorten** is an [App Engine][0] sample application written in
 [Go][4] for the [App Identify API][2]. It shows how to use the
 `appengine.AccessToken` method in combination with the [URL shortener
 API][3] to access and display the shortened URLs history.
 
 ## Demo
 
-[go-serviceaccount.appspot.com][5]
+[go-shorten.appspot.com][5]
 
 ## APIs
 - [App Engine Go Runtime][1]
