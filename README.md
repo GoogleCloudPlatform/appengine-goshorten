@@ -2,7 +2,7 @@ appengine-goshorten
 ===================
 
 **goshorten** is an [App Engine][0] sample application written in
-[Go][4] for the [App Identity API][2]. It shows how to use the
+[Go][4] for application [Service Account][2]. It shows how to use the
 `appengine.AccessToken` function in combination with the [URL shortener
 API][3] to access and display the history of URLs shortened by the application.
 
