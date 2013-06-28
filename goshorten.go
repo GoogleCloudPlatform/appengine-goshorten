@@ -20,13 +20,14 @@
 package goshorten
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 
 	"appengine"
+
+	"code.google.com/p/goauth2/appengine/serviceaccount"
+	"code.google.com/p/google-api-go-client/urlshortener/v1"
 )
 
 // appengineHandler wraps http.Handler to pass it a new `appengine.Context` and handle errors.
@@ -43,34 +44,6 @@ func (h appengineHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func init() {
 	http.Handle("/", appengineHandler(handle))
 	http.Handle("/shorten", appengineHandler(shorten))
-}
-
-// history maps to the JSON body returned by URL shortener API `history` method.
-type historyResponse struct {
-	Items []struct {
-		Id      string
-		LongUrl string
-	}
-	Error errorValue
-}
-
-// request maps to the JSON payload of `shorten` requests to the URL shortener API.
-type shortenRequest struct {
-	LongUrl string `json:"longUrl"`
-}
-
-// errorValue maps to the JSON body of error value in URL Shortener API responses.
-type errorValue struct {
-	Errors []struct {
-		Reason, Message, Location string
-	}
-	Code    int
-	Message string
-}
-
-// shortenResponse maps to the JSON body of `shorten` requests to the URL shortener API.
-type shortenResponse struct {
-	Error errorValue
 }
 
 var mainTemplate = template.Must(template.New("main").Parse(`<html>
@@ -93,23 +66,19 @@ var mainTemplate = template.Must(template.New("main").Parse(`<html>
 
 // handle renders the main page template with a submission form and the history of shortened urls.
 func handle(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
-	client, err := authorizedClient(c, "https://www.googleapis.com/auth/urlshortener")
+	client, err := serviceaccount.NewClient(c, "https://www.googleapis.com/auth/urlshortener")
 	if err != nil {
 		return fmt.Errorf("error creating authorized client: %v", err)
 	}
-	resp, err := client.Get("https://www.googleapis.com/urlshortener/v1/url/history")
+	service, err := urlshortener.New(client)
+	if err != nil {
+		return fmt.Errorf("error creating urlshortener service: %v", err)
+	}
+	result, err := service.Url.List().Do()
 	if err != nil {
 		return fmt.Errorf("error getting history: %v", err)
 	}
-	var result historyResponse
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("error decoding json body: %v", err)
-	}
 	c.Infof("urlshortener API response: %v", result)
-	if result.Error.Code != 0 {
-		return fmt.Errorf("urlshortener API error: %v", result.Error)
-	}
 	if err := mainTemplate.Execute(w, result); err != nil {
 		return fmt.Errorf("error executing template: %v", err)
 	}
@@ -118,27 +87,21 @@ func handle(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
 
 // shorten shortens a new url and redirects to the main page
 func shorten(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
-	client, err := authorizedClient(c, "https://www.googleapis.com/auth/urlshortener")
+	client, err := serviceaccount.NewClient(c, "https://www.googleapis.com/auth/urlshortener")
 	if err != nil {
 		return fmt.Errorf("error creating authorized client: %v", err)
 	}
-	body, err := json.Marshal(&shortenRequest{LongUrl: r.FormValue("url")})
+	service, err := urlshortener.New(client)
 	if err != nil {
-		return fmt.Errorf("error encoding JSON body: %v", err)
+		return fmt.Errorf("error creating urlshortener service: %v", err)
 	}
-	var result shortenResponse
-	resp, err := client.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", bytes.NewBuffer(body))
+	result, err := service.Url.Insert(&urlshortener.Url{
+		LongUrl: r.FormValue("url"),
+	}).Do()
 	if err != nil {
-		return fmt.Errorf("error posting url: %v", err)
-	}
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("error decoding json body: %v", err)
+		return fmt.Errorf("error posting new url: %v", err)
 	}
 	c.Infof("urlshortener API response: %v", result)
-	if result.Error.Code != 0 {
-		return fmt.Errorf("urlshortener API error: %v", result.Error)
-	}
 	http.Redirect(w, r, "/", 303)
 	return nil
 }
