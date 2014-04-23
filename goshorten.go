@@ -20,8 +20,10 @@
 package goshorten
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 
 	"appengine"
@@ -79,9 +81,11 @@ func handle(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("error getting history: %v", err)
 	}
 	c.Infof("urlshortener API response: %v", result)
-	if err := mainTemplate.Execute(w, result); err != nil {
+	var buf bytes.Buffer
+	if err := mainTemplate.Execute(&buf, result); err != nil {
 		return fmt.Errorf("error executing template: %v", err)
 	}
+	io.Copy(w, &buf)
 	return nil
 }
 
