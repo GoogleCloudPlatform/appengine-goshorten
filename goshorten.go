@@ -106,6 +106,6 @@ func shorten(c appengine.Context, w http.ResponseWriter, r *http.Request) error 
 		return fmt.Errorf("error posting new url: %v", err)
 	}
 	c.Infof("urlshortener API response: %v", result)
-	http.Redirect(w, r, "/", 303)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
